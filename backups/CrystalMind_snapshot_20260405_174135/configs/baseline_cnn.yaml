@@ -1,0 +1,68 @@
+# CrystalMind — Baseline CNN configuration
+# Train: python scripts/03_train.py --config configs/baseline_cnn.yaml
+
+# ── Data ──────────────────────────────────────────────────────────────
+data:
+  n_materials: 5000
+  xrd_wavelength: CuKa
+  xrd_n_points: 2000
+  two_theta_min: 5.0
+  two_theta_max: 90.0
+  two_theta_sigma: 0.1
+  val_fraction: 0.15
+  test_fraction: 0.15
+  random_seed: 42
+
+  augment:
+    enabled: true
+    gaussian_noise_std: 0.01
+    peak_shift_max: 5
+    intensity_scale_range: [0.8, 1.2]
+    baseline_drift: true
+
+# ── Model ─────────────────────────────────────────────────────────────
+model:
+  name: BaselineCNN
+  dropout: 0.3
+
+# ── Tasks ─────────────────────────────────────────────────────────────
+tasks:
+  crystal_system:
+    type: classification
+    n_classes: 7
+    weight: 1.0
+  space_group:
+    type: classification
+    n_classes: 231
+    weight: 0.5
+
+# ── Training ──────────────────────────────────────────────────────────
+training:
+  epochs: 60
+  batch_size: 64
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+  label_smoothing: 0.05
+  grad_clip: 1.0
+  scheduler: cosine
+  warmup_epochs: 5
+  early_stopping_patience: 15
+
+# ── Paths ─────────────────────────────────────────────────────────────
+paths:
+  raw_data:   data/raw
+  processed:  data/crystal_structures.npz
+  cache:      data/cache
+  checkpoint: outputs/checkpoints/baseline_cnn.pt
+  plots:      outputs/plots
+  reports:    outputs/reports
+
+# ── MLflow ────────────────────────────────────────────────────────────
+mlflow:
+  experiment_name: CrystalMind
+  tracking_uri: mlruns
+
+# ── Explainability ────────────────────────────────────────────────────
+explainability:
+  n_gradcam_samples: 20
+  target_layer: features
