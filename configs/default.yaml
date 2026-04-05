@@ -1,0 +1,79 @@
+# CrystalMind — master configuration  (1D ResNet + SE)
+# All scripts read from this file. Override any value via CLI: --key value
+
+# ── Data ──────────────────────────────────────────────────────────────
+data:
+  n_materials: 5000          # How many materials to fetch from MP
+  xrd_wavelength: CuKa       # Cu Kα  (1.5406 Å) — most common lab source
+  xrd_n_points: 2000         # Length of discretised XRD pattern
+  two_theta_min: 5.0         # degrees
+  two_theta_max: 90.0        # degrees
+  two_theta_sigma: 0.1       # Gaussian peak broadening (instrument simulation)
+  val_fraction: 0.15
+  test_fraction: 0.15
+  random_seed: 42
+
+  # Augmentation (applied only during training)
+  augment:
+    enabled: true
+    gaussian_noise_std: 0.01   # relative to normalised intensity
+    peak_shift_max: 5          # max shift in discrete bins
+    intensity_scale_range: [0.8, 1.2]
+    baseline_drift: true
+
+# ── Model ─────────────────────────────────────────────────────────────
+model:
+  name: CrystalMind1DResNet
+  dropout: 0.4
+  # Channel widths per stage
+  channels: [32, 64, 128, 256, 256]
+  # Kernel sizes per stage
+  kernels: [15, 7, 7, 7, 7]
+  # Strides per stage
+  strides: [2, 2, 2, 2, 1]
+  # Dilation (last stage uses dilated convolutions)
+  dilations: [1, 1, 1, 1, 2]
+  residual_blocks_per_stage: 2
+
+# ── Tasks ─────────────────────────────────────────────────────────────
+# Only tasks present in the .npz dataset are used.
+tasks:
+  crystal_system:
+    type: classification
+    n_classes: 7
+    weight: 1.0
+  space_group:
+    type: classification
+    n_classes: 231
+    weight: 0.5
+
+# ── Training ──────────────────────────────────────────────────────────
+training:
+  epochs: 80
+  batch_size: 64
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+  label_smoothing: 0.05
+  grad_clip: 1.0
+  scheduler: cosine           # cosine | step | plateau
+  warmup_epochs: 5
+  early_stopping_patience: 15
+
+# ── Paths ─────────────────────────────────────────────────────────────
+paths:
+  raw_data:   data/raw
+  processed:  data/crystal_structures.npz
+  cache:      data/cache
+  checkpoint: outputs/checkpoints/best_model.pt
+  plots:      outputs/plots
+  reports:    outputs/reports
+
+# ── MLflow ────────────────────────────────────────────────────────────
+mlflow:
+  experiment_name: CrystalMind
+  tracking_uri: mlruns         # local folder; change to remote URI if needed
+
+# ── Explainability ────────────────────────────────────────────────────
+explainability:
+  n_gradcam_samples: 20
+  target_layer: layer4         # which backbone layer to hook

@@ -1,0 +1,76 @@
+# CrystalMind — 1D Transformer configuration
+# Compact: d_model=128, 4 heads, 4 layers  (~500K params)
+# Designed for 4 GB GPU / 8 GB RAM
+#
+# Train: python scripts/03_train.py --config configs/transformer.yaml
+
+# ── Data ──────────────────────────────────────────────────────────────
+data:
+  n_materials: 5000
+  xrd_wavelength: CuKa
+  xrd_n_points: 2000
+  two_theta_min: 5.0
+  two_theta_max: 90.0
+  two_theta_sigma: 0.1
+  val_fraction: 0.15
+  test_fraction: 0.15
+  random_seed: 42
+
+  augment:
+    enabled: true
+    gaussian_noise_std: 0.01
+    peak_shift_max: 5
+    intensity_scale_range: [0.8, 1.2]
+    baseline_drift: true
+
+# ── Model ─────────────────────────────────────────────────────────────
+model:
+  name: XRDTransformer
+  d_model: 128
+  n_heads: 4
+  n_layers: 4
+  d_ff: 256
+  patch_size: 16
+  dropout: 0.3
+
+# ── Tasks ─────────────────────────────────────────────────────────────
+tasks:
+  crystal_system:
+    type: classification
+    n_classes: 7
+    weight: 1.0
+  space_group:
+    type: classification
+    n_classes: 231
+    weight: 0.5
+
+# ── Training ──────────────────────────────────────────────────────────
+training:
+  epochs: 80
+  batch_size: 32          # smaller batch for Transformer memory
+  learning_rate: 5e-4     # lower LR for Transformer stability
+  weight_decay: 1e-4
+  label_smoothing: 0.05
+  grad_clip: 1.0
+  scheduler: cosine
+  warmup_epochs: 10       # longer warmup for Transformer
+  early_stopping_patience: 15
+
+# ── Paths ─────────────────────────────────────────────────────────────
+paths:
+  raw_data:   data/raw
+  processed:  data/crystal_structures.npz
+  cache:      data/cache
+  checkpoint: outputs/checkpoints/transformer.pt
+  plots:      outputs/plots
+  reports:    outputs/reports
+
+# ── MLflow ────────────────────────────────────────────────────────────
+mlflow:
+  experiment_name: CrystalMind
+  tracking_uri: mlruns
+
+# ── Explainability ────────────────────────────────────────────────────
+explainability:
+  n_gradcam_samples: 20
+  target_layer: encoder
