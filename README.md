@@ -1,4 +1,4 @@
-# 🔬 CrystalMind
+# CrystalMind
 
 **Advanced XRD Crystal Structure Classification System**  
 Built on Materials Project data · PyTorch · Explainable AI · Web Demo
